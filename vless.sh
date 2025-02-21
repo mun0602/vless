@@ -68,7 +68,7 @@ cat > ${CONFIG_FILE} <<EOF
 }
 EOF
 
-# Mở cổng firewall (UFW) chính xác
+# Mở cổng firewall chính xác
 ufw allow ${PORT}/tcp
 
 # Kiểm tra và tạo service systemd nếu chưa có
@@ -95,17 +95,17 @@ systemctl daemon-reload
 systemctl enable xray
 systemctl restart xray
 
-# Tạo URL VLESS đúng chuẩn
-VLESS_URL="vless://${UUID}@${SERVER_IP}:${PORT}?encryption=none#${USERNAME}"
+# ✅ Tạo URL VLESS theo đúng chuẩn Hiddify
+VLESS_URL="vless://${UUID}@${SERVER_IP}:${PORT}?security=&encryption=none&headerType=&type=tcp#${USERNAME}"
 
-# Tạo mã QR nhỏ hơn (-s 5), với tên in đậm dưới QR
+# ✅ Tạo mã QR nhỏ hơn (-s 5), với tên in đậm dưới QR
 QR_FILE="/tmp/vless_qr.png"
 qrencode -o ${QR_FILE} -s 5 -m 2 "${VLESS_URL}"
 
-# Thêm tên VLESS dưới QR
+# ✅ Thêm tên VLESS dưới QR
 convert ${QR_FILE} -gravity south -fill black -pointsize 20 -annotate +0+10 "**${USERNAME}**" ${QR_FILE}
 
-# Hiển thị thông tin VLESS
+# ✅ Hiển thị thông tin VLESS
 echo "========================================"
 echo "      Cài đặt VLESS hoàn tất!"
 echo "----------------------------------------"
