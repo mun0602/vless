@@ -10,7 +10,7 @@ CONFIG_FILE="${INSTALL_DIR}/config.json"
 SERVICE_FILE="/etc/systemd/system/xray.service"
 
 # Cài đặt các gói cần thiết
-apt install -y unzip curl jq qrencode uuid-runtime
+apt install -y unzip curl jq qrencode
 
 # Kiểm tra xem Xray đã được cài đặt chưa
 if [[ -f "${INSTALL_DIR}/xray" ]]; then
@@ -30,11 +30,10 @@ SERVER_IP=$(curl -s ifconfig.me)
 # Nhập User ID, Port, và tên người dùng
 read -p "Nhập User ID VLESS (UUID, nhấn Enter để tạo ngẫu nhiên): " UUID
 UUID=${UUID:-$(uuidgen)}
-read -p "Nhập Port cho VLESS (mặc định 443): " PORT
-PORT=${PORT:-443}
+PORT=$((RANDOM % (65535 - 1024) + 1024))
 read -p "Nhập tên người dùng: " USERNAME
 
-# Tạo file cấu hình cho Xray
+# Tạo file cấu hình cho Xray (VLESS)
 cat > ${CONFIG_FILE} <<EOF
 {
   "inbounds": [
@@ -45,43 +44,45 @@ cat > ${CONFIG_FILE} <<EOF
         "clients": [
           {
             "id": "${UUID}",
-            "flow": "",
-            "level": 0
+            "flow": ""
           }
-        ],
-        "decryption": "none"
+        ]
       },
       "streamSettings": {
         "network": "tcp",
-        "security": "none"
+        "security": "none",
+        "tlsSettings": {},
+        "tcpSettings": {
+          "header": {}
+        }
       }
     }
   ],
   "outbounds": [
     {
       "protocol": "freedom",
-      "settings": {}
+      "settings": {},
+      "domainStrategy": "UseIP"
     }
   ]
 }
 EOF
 
-# Mở cổng trên tường lửa (nếu chưa mở)
-ufw allow ${PORT}/tcp
-
 # Kiểm tra và tạo service systemd nếu chưa có
 if [[ ! -f "${SERVICE_FILE}" ]]; then
-    echo "Tạo service Xray..."
+    echo "Tạo service Xray (VLESS)..."
     cat > ${SERVICE_FILE} <<EOF
 [Unit]
-Description=Xray Service
+Description=Xray Service (VLESS)
 After=network.target
+Wants=network-online.target
 
 [Service]
 ExecStart=${INSTALL_DIR}/xray run -config ${CONFIG_FILE}
 Restart=always
 User=root
 LimitNOFILE=512000
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
@@ -93,8 +94,8 @@ systemctl daemon-reload
 systemctl enable xray
 systemctl restart xray
 
-# Tạo URL VLESS không mã hóa UUID
-VLESS_URL="vless://${UUID}@${SERVER_IP}:${PORT}?encryption=none#${USERNAME}"
+# Tạo URL VLESS
+VLESS_URL="vless://${UUID}@${SERVER_IP}:${PORT}?security=&encryption=none&headerType=&type=tcp#${USERNAME}"
 
 # Tạo mã QR
 QR_FILE="/tmp/vless_qr.png"
@@ -111,5 +112,4 @@ echo "Mã QR được lưu tại: ${QR_FILE}"
 echo "Quét mã QR dưới đây để sử dụng:"
 qrencode -t ANSIUTF8 "${VLESS_URL}"
 echo "----------------------------------------"
-echo "Tên người dùng: ${USERNAME}"
 echo "========================================"
