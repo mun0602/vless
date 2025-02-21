@@ -10,7 +10,7 @@ CONFIG_FILE="${INSTALL_DIR}/config.json"
 SERVICE_FILE="/etc/systemd/system/xray.service"
 
 # Cài đặt các gói cần thiết
-apt install -y unzip curl jq qrencode
+apt install -y unzip curl jq qrencode uuid-runtime
 
 # Kiểm tra xem Xray đã được cài đặt chưa
 if [[ -f "${INSTALL_DIR}/xray" ]]; then
@@ -93,7 +93,7 @@ systemctl daemon-reload
 systemctl enable xray
 systemctl restart xray
 
-# Tạo URL VLESS
+# Tạo URL VLESS không mã hóa UUID
 VLESS_URL="vless://${UUID}@${SERVER_IP}:${PORT}?encryption=none#${USERNAME}"
 
 # Tạo mã QR
